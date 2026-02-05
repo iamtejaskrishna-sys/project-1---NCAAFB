@@ -467,9 +467,7 @@ elif page == "📌 Team Profile":
 elif page == "📊 Analysis":
 
     st.header("📊 Analysis & Insights")
-
     st.write("Select a business question to generate insights from the database.")
-
     questions = [
         "Which teams have maintained Top 5 rankings across multiple seasons?",
         "What are the average ranking points per team by season?",
@@ -477,121 +475,121 @@ elif page == "📊 Analysis":
         "Which players have appeared in multiple seasons for the same team?",
         "What are the most common player positions and their distribution across teams?"
     ]
+    selected_question = st.selectbox(
+        "Select an analysis question",
+        questions
+    )
+    
+
     tables_df = pd.read_sql("""
-SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = 'public'
-ORDER BY table_name;
-""", engine)
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+        ORDER BY table_name;
+    """, engine)
 
     st.dataframe(tables_df)
 
-selected_question = st.selectbox(
-    "Select an analysis question",
-    questions
-)
+    
+    
+    st.divider()
 
-st.divider()
 
-# ---------------- Question 1 ----------------
-if selected_question == questions[0]:
+    # ---------------- Question 1 ----------------
+    if selected_question == questions[0]:
 
-    st.subheader("Teams in Top 5 rankings")
+        st.subheader("Teams in Top 5 rankings")
 
-    rankings_df = pd.read_csv("rankings.csv")
+        rankings_df = pd.read_csv("rankings.csv")
 
-    top5_df = rankings_df[rankings_df["rank"] <= 5]
+        top5_df = rankings_df[rankings_df["rank"] <= 5]
 
-    result = (
-        top5_df
+        result = (
+            top5_df
             .groupby(["team_id", "team_name"])["season"]
             .nunique()
             .reset_index(name="seasons_in_top5")
             .sort_values(by="seasons_in_top5", ascending=False)
-    )
+        )
 
-    st.dataframe(result, use_container_width=True)
+        st.dataframe(result, use_container_width=True)
 
+    # ---------------- Question 2 ----------------
+    elif selected_question == questions[1]:
 
-# ---------------- Question 2 ----------------
-elif selected_question == questions[1]:
-    st.subheader("Average ranking points per team by season")
+        st.subheader("Average ranking points per team by season")
 
-    rankings_df = pd.read_csv("rankings.csv")
+        rankings_df = pd.read_csv("rankings.csv")
 
-    result = (
-        rankings_df
+        result = (
+            rankings_df
             .groupby(["team_id", "team_name", "season"])["points"]
             .mean()
             .reset_index(name="avg_ranking_points")
             .sort_values(["team_name", "season"])
-    )
+        )
 
-    st.dataframe(result, use_container_width=True)
+        st.dataframe(result, use_container_width=True)
 
-# ---------------- Question 3 ----------------
-elif selected_question == questions[2]:
-    st.subheader("First-place votes received by each team")
+    # ---------------- Question 3 ----------------
+    elif selected_question == questions[2]:
 
-    rankings_df = pd.read_csv("rankings.csv")
+        st.subheader("First-place votes received by each team")
 
-    result = (
-        rankings_df
+        rankings_df = pd.read_csv("rankings.csv")
+
+        result = (
+            rankings_df
             .groupby(["team_id", "team_name"])["fp_votes"]
             .sum()
             .reset_index(name="total_first_place_votes")
             .sort_values("total_first_place_votes", ascending=False)
-    )
+        )
 
-    st.dataframe(result, use_container_width=True)
+        st.dataframe(result, use_container_width=True)
 
-# ---------------- Question 4 ----------------
-elif selected_question == questions[3]:
+    # ---------------- Question 4 ----------------
+    elif selected_question == questions[3]:
 
-    st.subheader("Teams appearing in rankings across seasons")
+        st.subheader("Teams appearing in rankings across seasons")
 
-    rankings_df = pd.read_csv("rankings.csv")
+        rankings_df = pd.read_csv("rankings.csv")
 
-    st.write("Rows in CSV:", rankings_df.shape[0])   # debug
-
-    result = (
-        rankings_df
+        result = (
+            rankings_df
             .groupby(["team_id", "team_name"])["season"]
             .nunique()
             .reset_index(name="number_of_seasons")
             .sort_values(by="number_of_seasons", ascending=False)
-    )
+        )
 
-    st.write("Rows after grouping:", result.shape[0])   # debug
+        st.dataframe(result, use_container_width=True)
 
-    st.dataframe(result, use_container_width=True)
+    # ---------------- Question 5 ----------------
+    elif selected_question == questions[4]:
 
+        st.subheader("Player position distribution across teams")
 
-# ---------------- Question 5 ----------------
-elif selected_question == questions[4]:
+        query = """
+        SELECT
+            t.name AS team_name,
+            p.position,
+            COUNT(*) AS player_count
+        FROM players p
+        JOIN teams t
+            ON p.team_id = t.team_id
+        WHERE p.position IS NOT NULL
+        GROUP BY
+            t.name,
+            p.position
+        ORDER BY
+            t.name,
+            player_count DESC;
+        """
 
-    st.subheader("Player position distribution across teams")
+        df = pd.read_sql(query, engine)
 
-    query = """
-    SELECT
-        t.name AS team_name,
-        p.position,
-        COUNT(*) AS player_count
-    FROM players p
-    JOIN teams t
-        ON p.team_id = t.team_id
-    WHERE p.position IS NOT NULL
-    GROUP BY
-        t.name,
-        p.position
-    ORDER BY
-        t.name,
-        player_count DESC;
-    """
-
-    df = pd.read_sql(query, engine)
-
-    st.dataframe(df, use_container_width=True)
+        st.dataframe(df, use_container_width=True)
 
 
 
